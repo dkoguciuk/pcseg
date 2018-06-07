@@ -9,18 +9,18 @@
 #include "../include/helper.h"
 
 
-int computeWeights(  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc, int num_pts, float sigma_sq, int K,std::vector<float>& imp_wt){
+int computeWeights(  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc, int num_pts, float sigma_sq, int K,std::vector<float>& imp_wt, bool verbose){
 
   pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
   kdtree.setInputCloud (pc);
-  printf("loaded point cloud into kdtree object for fast neighbor search \n");
-  
+  if (verbose) printf("loaded point cloud into kdtree object for fast neighbor search \n");
+
   float feature_length = 6;
   float normalization_sum = 0.0;
   float sum_p;
 
   for(int i = 0 ; i < num_pts ; i++){
-    
+
     std::vector<int> pointIdxNKNSearch(K);
     std::vector<float> pointNKNSquaredDistance(K);
     pcl::PointXYZRGB searchPoint = pc->points[i];
@@ -32,9 +32,9 @@ int computeWeights(  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc, int num_pts, flo
     {
       std::vector<float> x_j_feature(feature_length,0.0);
       for (size_t j = 1; j < pointIdxNKNSearch.size(); ++j)
-      {        
+      {
        int x_j = pointIdxNKNSearch[j];
-       
+
        Aij_ew = exp(-1.0*(pointNKNSquaredDistance[j]/sigma_sq));
 
        x_j_feature[0] =  Aij_ew * pc->points[x_j].x; 
@@ -59,12 +59,12 @@ int computeWeights(  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc, int num_pts, flo
      imp_wt[i] = norm_sum; 
    }
    else{
-    printf("hello, found no neighbors\n");
+    if (verbose) printf("hello, found no neighbors\n");
     imp_wt[i] = 0.0;
   }
   normalization_sum += imp_wt[i];  
 }
-  printf("normalization sum : %f \n" , normalization_sum);
+  if (verbose) printf("normalization sum : %f \n" , normalization_sum);
 for(int i = 0 ; i < num_pts ; i++){
   imp_wt[i] = imp_wt[i] / normalization_sum;
 }
@@ -73,7 +73,7 @@ return(1);
 }
 
 
-std::vector<int> weightedRandomSample (std::vector<float> weights, int num_pts, int total_samples){
+std::vector<int> weightedRandomSample (std::vector<float> weights, int num_pts, int total_samples, bool verbose){
 
 	srand (static_cast <unsigned> (time(0)));
 	std::vector<int> samples(num_pts,0);
@@ -104,7 +104,7 @@ return(samples);
 }
 
 void resamplePC(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc, pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_rs, 
-	std::vector<int> samples, int total_samples){
+	std::vector<int> samples, int total_samples, bool verbose){
   pc_rs->width = total_samples;
   pc_rs->height = 1;
   pc_rs->points.resize(pc_rs->height * pc_rs->width);
